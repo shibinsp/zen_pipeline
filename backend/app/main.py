@@ -1,11 +1,29 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
+from app.core.database import engine, Base
 from app.api.v1.router import api_router
 import traceback
 
+# Import all models to register them with Base
+from app.models import *  # noqa
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Create database tables
+    print(f"Creating database tables (SQLite: {settings.is_sqlite})...")
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully!")
+    yield
+    # Shutdown
+    print("Application shutting down...")
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.APP_NAME,
     description="AI-powered software delivery and DevOps automation platform",
     version="1.0.0",

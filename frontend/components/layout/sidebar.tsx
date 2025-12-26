@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Github,
 } from 'lucide-react'
 
 const mainNavItems = [
@@ -35,6 +36,11 @@ const mainNavItems = [
     title: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'GitHub Review',
+    href: '/github-review',
+    icon: Github,
   },
   {
     title: 'Code Analysis',

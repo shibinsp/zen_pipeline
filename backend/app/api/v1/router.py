@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, users, organizations, repositories, analysis, deployments, tests, architecture, admin
+from app.api.v1.endpoints import auth, users, organizations, repositories, analysis, deployments, tests, architecture, admin, github_review
 
 api_router = APIRouter()
 
@@ -12,3 +12,4 @@ api_router.include_router(deployments.router, prefix="/deployments", tags=["Depl
 api_router.include_router(tests.router, prefix="/tests", tags=["Test Intelligence"])
 api_router.include_router(architecture.router, prefix="/architecture", tags=["Architecture"])
 api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
+api_router.include_router(github_review.router, prefix="/github", tags=["GitHub Review"])
