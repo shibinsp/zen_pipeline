@@ -127,18 +127,77 @@ export const architecture = {
 
 // Admin
 export const admin = {
+  // User management
   listUsers: (params?: { page?: number; search?: string; organization_id?: string; role?: string }) =>
     apiClient.get('/admin/users', { params }),
-  getAuditLogs: (params?: { page?: number; action?: string; resource_type?: string; user_id?: string }) =>
+  updateUserRole: (userId: string, role: string) =>
+    apiClient.patch(`/admin/users/${userId}/role`, { role }),
+  updateUserStatus: (userId: string, isActive: boolean) =>
+    apiClient.patch(`/admin/users/${userId}/status`, { is_active: isActive }),
+  deleteUser: (userId: string) =>
+    apiClient.delete(`/admin/users/${userId}`),
+
+  // Team management
+  listTeams: (params?: { page?: number; search?: string }) =>
+    apiClient.get('/admin/teams', { params }),
+  getTeam: (teamId: string) =>
+    apiClient.get(`/admin/teams/${teamId}`),
+  createTeam: (data: { name: string; description?: string }) =>
+    apiClient.post('/admin/teams', data),
+  updateTeam: (teamId: string, data: { name?: string; description?: string }) =>
+    apiClient.patch(`/admin/teams/${teamId}`, data),
+  deleteTeam: (teamId: string) =>
+    apiClient.delete(`/admin/teams/${teamId}`),
+  addTeamMember: (teamId: string, userId: string, role: string = 'member') =>
+    apiClient.post(`/admin/teams/${teamId}/members`, { user_id: userId, role }),
+  removeTeamMember: (teamId: string, userId: string) =>
+    apiClient.delete(`/admin/teams/${teamId}/members/${userId}`),
+
+  // Organization settings
+  getSettings: () =>
+    apiClient.get('/admin/settings'),
+  updateSettings: (data: { name?: string; slug?: string; settings?: Record<string, unknown> }) =>
+    apiClient.patch('/admin/settings', data),
+
+  // Audit logs
+  getAuditLogs: (params?: { page?: number; action?: string; resource_type?: string; user_id?: string; start_date?: string; end_date?: string }) =>
     apiClient.get<PaginatedResponse<AuditLog>>('/admin/audit-logs', { params }),
+
+  // Usage & Dashboard
   getUsageMetrics: (period?: string) =>
     apiClient.get('/admin/usage', { params: { period } }),
   getDashboardStats: () =>
     apiClient.get<DashboardStats>('/admin/dashboard-stats'),
+
+  // Integrations
   listIntegrations: () =>
     apiClient.get<{ integrations: Integration[] }>('/admin/integrations'),
   connectIntegration: (id: string, config: Record<string, unknown>) =>
     apiClient.post(`/admin/integrations/${id}/connect`, config),
   disconnectIntegration: (id: string) =>
     apiClient.delete(`/admin/integrations/${id}`),
+}
+
+// Analytics
+export const analytics = {
+  getDoraMetrics: (period?: string) =>
+    apiClient.get('/admin/analytics/dora-metrics', { params: { period } }),
+  getDoraHistory: (weeks?: number) =>
+    apiClient.get('/admin/analytics/dora-history', { params: { weeks } }),
+  getRiskTrends: (period?: string) =>
+    apiClient.get('/admin/analytics/risk-trends', { params: { period } }),
+  getRecentActivity: (limit?: number) =>
+    apiClient.get('/admin/analytics/activity', { params: { limit } }),
+  getVulnerabilitySummary: () =>
+    apiClient.get('/admin/analytics/vulnerabilities'),
+  getTestEfficiency: (limit?: number) =>
+    apiClient.get('/admin/analytics/test-efficiency', { params: { limit } }),
+  getTeamPerformance: (period?: string) =>
+    apiClient.get('/admin/analytics/team-performance', { params: { period } }),
+  getTeamMetrics: () =>
+    apiClient.get('/admin/analytics/team-metrics'),
+  getTrends: (months?: number) =>
+    apiClient.get('/admin/analytics/trends', { params: { months } }),
+  getHealthStatus: () =>
+    apiClient.get('/admin/analytics/health-status'),
 }

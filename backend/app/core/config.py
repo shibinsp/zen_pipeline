@@ -25,9 +25,13 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: str = '["http://localhost:3000", "http://127.0.0.1:3000"]'
+    ALLOW_ALL_ORIGINS: bool = False  # Set to True in production to allow all origins
 
     @property
     def cors_origins_list(self) -> List[str]:
+        if self.ALLOW_ALL_ORIGINS or self.ENVIRONMENT == "production":
+            # Allow all origins in production
+            return ["*"]
         return json.loads(self.CORS_ORIGINS)
 
     class Config:

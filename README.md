@@ -112,6 +112,70 @@ A comprehensive DevOps pipeline management platform with AI-powered code analysi
    npm run dev
    ```
 
+## Production Deployment
+
+### Using Production Docker Compose
+
+1. **Configure Production Environment**:
+   
+   The production configuration is stored in `.env.prod`. Edit this file to customize your production settings:
+   
+   ```bash
+   # Edit production environment variables
+   nano .env.prod
+   ```
+   
+   Key configuration options in `.env.prod`:
+   - **Ports**: `BACKEND_PORT`, `FRONTEND_PORT`, `POSTGRES_PORT`, `REDIS_PORT`
+   - **Database**: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+   - **Security**: `SECRET_KEY` (⚠️ **Change this in production!**)
+   - **CORS**: `ALLOW_ALL_ORIGINS`, `CORS_ORIGINS`
+   - **Backend**: `BACKEND_WORKERS`, `ENVIRONMENT`
+
+2. **Start Production Services**:
+   
+   Using the helper script (recommended):
+   ```bash
+   ./docker-compose.prod.sh up -d --build
+   ```
+   
+   Or using docker-compose directly:
+   ```bash
+   docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+   ```
+
+3. **Access the Application**:
+   - Frontend: `http://<your-server-ip>:<FRONTEND_PORT>` (default: `http://localhost:6501`)
+   - Backend API: `http://<your-server-ip>:<BACKEND_PORT>` (default: `http://localhost:6500`)
+   - API Docs: `http://<your-server-ip>:<BACKEND_PORT>/api/docs`
+
+4. **Stop Production Services**:
+   ```bash
+   ./docker-compose.prod.sh down
+   ```
+
+5. **View Logs**:
+   ```bash
+   ./docker-compose.prod.sh logs -f
+   ```
+
+### Production Environment Variables
+
+All production configuration is stored in `.env.prod`. Key variables include:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `BACKEND_PORT` | Backend API port | `6500` |
+| `FRONTEND_PORT` | Frontend web port | `6501` |
+| `POSTGRES_PORT` | PostgreSQL port | `6503` |
+| `REDIS_PORT` | Redis port | `6502` |
+| `POSTGRES_USER` | Database username | `zen_user` |
+| `POSTGRES_PASSWORD` | Database password | `zen_password` |
+| `POSTGRES_DB` | Database name | `zen_pipeline` |
+| `SECRET_KEY` | JWT secret key | ⚠️ **Change in production!** |
+| `ALLOW_ALL_ORIGINS` | Allow all CORS origins | `true` |
+| `BACKEND_WORKERS` | Uvicorn worker count | `4` |
+
 ## Environment Variables
 
 ### Backend
@@ -149,6 +213,9 @@ zen_pipeline/
 │   ├── Dockerfile
 │   └── package.json
 ├── docker-compose.yml
+├── docker-compose.prod.yml
+├── docker-compose.prod.sh
+├── .env.prod
 └── README.md
 ```
 

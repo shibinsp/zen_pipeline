@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useAuthStore } from '@/lib/stores/auth-store'
 import { Button } from '@/components/ui/button'
@@ -26,8 +27,14 @@ import {
 } from 'lucide-react'
 
 export function Header() {
+  const router = useRouter()
   const { theme, setTheme } = useTheme()
   const { user, logout } = useAuthStore()
+
+  const handleLogout = () => {
+    logout()
+    router.push('/login')
+  }
 
   const getInitials = (name: string) => {
     return name
@@ -124,7 +131,7 @@ export function Header() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-red-600">
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600">
               <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>

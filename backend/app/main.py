@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.v1.router import api_router
@@ -32,14 +34,44 @@ app = FastAPI(
     openapi_url="/api/openapi.json"
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Custom CORS middleware to handle allow all origins
+class AllowAllCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        origin = request.headers.get("origin")
+        
+        # Handle preflight OPTIONS requests
+        if request.method == "OPTIONS":
+            response = JSONResponse(content={})
+            if origin:
+                response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Max-Age"] = "600"
+            return response
+        
+        # Process the request
+        response = await call_next(request)
+        
+        # Add CORS headers to response
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+
+# Add CORS middleware
+if settings.ALLOW_ALL_ORIGINS or settings.ENVIRONMENT == "production":
+    app.add_middleware(AllowAllCORSMiddleware)
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

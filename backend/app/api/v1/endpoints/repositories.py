@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
 from app.models.repository import Repository
@@ -66,7 +67,33 @@ def create_repository(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    repo = Repository(**repo_data.model_dump())
+    repo_dict = repo_data.model_dump()
+
+    # Auto-assign organization_id from current user if not provided
+    org_id = repo_dict.get('organization_id') or current_user.organization_id
+    repo_dict['organization_id'] = org_id
+
+    # Check if repository already exists (by URL or full_name in same org)
+    existing = db.query(Repository).filter(
+        Repository.organization_id == org_id,
+        (Repository.url == repo_dict['url']) | (Repository.full_name == repo_dict['full_name'])
+    ).first()
+
+    if existing:
+        # Return existing repository instead of creating duplicate
+        return existing
+
+    # Set default values explicitly
+    if not repo_dict.get('default_branch'):
+        repo_dict['default_branch'] = 'main'
+    if not repo_dict.get('settings'):
+        repo_dict['settings'] = {}
+    if not repo_dict.get('language_breakdown'):
+        repo_dict['language_breakdown'] = {}
+    if not repo_dict.get('health_score'):
+        repo_dict['health_score'] = 'A'
+
+    repo = Repository(**repo_dict)
     db.add(repo)
     db.commit()
     db.refresh(repo)
@@ -109,3 +136,49 @@ def delete_repository(
     db.commit()
 
     return {"message": "Repository deleted successfully"}
+
+
+@router.put("/{repo_id}/review", response_model=RepositoryResponse)
+def save_review_results(
+    repo_id: UUID,
+    review_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Save code review results to a repository"""
+    repo = db.query(Repository).filter(Repository.id == repo_id).first()
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repository not found")
+
+    # Update repository with review data
+    repo.last_review_data = review_data
+    repo.last_scan_at = datetime.utcnow()
+
+    # Update health score based on review metrics
+    if review_data.get('metrics'):
+        security_score = review_data['metrics'].get('security_score', 0)
+        quality_score = review_data['metrics'].get('quality_score', 0)
+        avg_score = (security_score + quality_score) / 2
+        if avg_score >= 80:
+            repo.health_score = 'A'
+        elif avg_score >= 60:
+            repo.health_score = 'B'
+        elif avg_score >= 40:
+            repo.health_score = 'C'
+        elif avg_score >= 20:
+            repo.health_score = 'D'
+        else:
+            repo.health_score = 'F'
+
+    # Update language breakdown if available
+    if review_data.get('languages'):
+        total_lines = review_data.get('total_lines', 1)
+        repo.language_breakdown = {
+            lang: round((lines / total_lines) * 100, 1)
+            for lang, lines in review_data['languages'].items()
+        }
+
+    db.commit()
+    db.refresh(repo)
+
+    return repo

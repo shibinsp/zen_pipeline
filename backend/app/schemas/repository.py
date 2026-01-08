@@ -12,7 +12,7 @@ class RepositoryBase(BaseModel):
 
 
 class RepositoryCreate(RepositoryBase):
-    organization_id: UUID
+    organization_id: Optional[UUID] = None  # Auto-assigned from current user if not provided
     default_branch: Optional[str] = "main"
     settings: Optional[Dict[str, Any]] = {}
 
@@ -26,11 +26,12 @@ class RepositoryUpdate(BaseModel):
 class RepositoryResponse(RepositoryBase):
     id: UUID
     organization_id: UUID
-    default_branch: str
-    language_breakdown: Dict[str, Any]
-    settings: Dict[str, Any]
-    health_score: str
+    default_branch: str = "main"
+    language_breakdown: Optional[Dict[str, Any]] = {}
+    settings: Optional[Dict[str, Any]] = {}
+    health_score: Optional[str] = "A"
     last_scan_at: Optional[datetime] = None
+    last_review_data: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -41,6 +42,16 @@ class RepositoryResponse(RepositoryBase):
 
     class Config:
         from_attributes = True
+
+    def __init__(self, **data):
+        # Ensure None values get defaults
+        if data.get('language_breakdown') is None:
+            data['language_breakdown'] = {}
+        if data.get('settings') is None:
+            data['settings'] = {}
+        if data.get('health_score') is None:
+            data['health_score'] = 'A'
+        super().__init__(**data)
 
 
 class RepositoryBrief(BaseModel):

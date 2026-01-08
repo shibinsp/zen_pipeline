@@ -45,6 +45,7 @@ export interface Repository {
   language_breakdown: Record<string, number>
   health_score: string
   last_scan_at?: string
+  last_review_data?: GitHubReviewResult
   created_at: string
 }
 
@@ -171,16 +172,17 @@ export interface ArchitectureRule {
 export interface DependencyNode {
   id: string
   name: string
-  type: 'module' | 'package' | 'service'
+  type: string
   size?: number
   health_score?: number
+  file_count?: number
 }
 
 export interface DependencyEdge {
   source: string
   target: string
   weight?: number
-  type: 'import' | 'call' | 'data'
+  type: string
 }
 
 export interface DependencyGraph {
@@ -211,6 +213,100 @@ export interface PaginatedResponse<T> {
   page: number
   page_size: number
   total_pages: number
+}
+
+// Request types for Code Analysis
+export interface CreateRepositoryRequest {
+  name: string
+  full_name: string
+  provider: string
+  url: string
+  default_branch?: string
+  settings?: Record<string, unknown>
+}
+
+export interface TriggerScanRequest {
+  repository_id: string
+  commit_sha: string
+  branch?: string
+  scan_type: 'security' | 'quality' | 'dependency'
+}
+
+// GitHub Review Types
+export interface CodeIssue {
+  file_path: string
+  line_number: number
+  category: string
+  severity: string
+  title: string
+  description: string
+  suggestion: string
+  code_snippet: string
+}
+
+export interface TechStackItem {
+  name: string
+  category: string
+  version?: string
+}
+
+export interface FileReport {
+  file_path: string
+  language: string
+  lines: number
+  issues_count: number
+  health_score: number
+  issues: CodeIssue[]
+}
+
+export interface HotFile {
+  file: string
+  changes: number
+  status: string
+}
+
+export interface ComplexityMetrics {
+  average_file_complexity: number
+  average_function_length: number
+  average_function_complexity: number
+  total_functions: number
+  long_functions: number
+  complex_functions: number
+}
+
+export interface ReviewMetrics {
+  category_breakdown: Record<string, number>
+  issues_per_1000_lines: number
+  security_score: number
+  quality_score: number
+  test_metrics?: {
+    test_files: number
+    test_lines: number
+    source_lines: number
+    test_ratio: number
+  }
+  readme_score?: number
+  readme_issues?: string[]
+}
+
+export interface GitHubReviewResult {
+  repository_url: string
+  repository_name: string
+  branch: string
+  analyzed_at: string
+  total_files: number
+  total_lines: number
+  languages: Record<string, number>
+  summary: Record<string, number>
+  issues: CodeIssue[]
+  metrics: ReviewMetrics
+  recommendations: string[]
+  tech_stack: TechStackItem[]
+  file_reports: FileReport[]
+  documentation_score: number
+  test_coverage_estimate: number
+  complexity_metrics: ComplexityMetrics
+  hot_files: HotFile[]
 }
 
 export interface DashboardStats {

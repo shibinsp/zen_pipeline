@@ -160,13 +160,41 @@ def create_test_run(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Check for duplicate/recent test runs (within last 30 seconds)
+    recent_cutoff = datetime.utcnow() - timedelta(seconds=30)
+    existing_run = db.query(TestRun).filter(
+        TestRun.repository_id == run_data.repository_id,
+        TestRun.created_at >= recent_cutoff
+    ).first()
+
+    if existing_run:
+        raise HTTPException(
+            status_code=409,
+            detail="A test run was recently created for this repository. Please wait before running again."
+        )
+
+    # Check for any running tests on this repo
+    running_test = db.query(TestRun).filter(
+        TestRun.repository_id == run_data.repository_id,
+        TestRun.status == TestRunStatus.RUNNING
+    ).first()
+
+    if running_test:
+        raise HTTPException(
+            status_code=409,
+            detail="A test is already running for this repository."
+        )
+
     test_run = TestRun(
         repository_id=run_data.repository_id,
         commit_sha=run_data.commit_sha,
         branch=run_data.branch,
         test_framework=run_data.test_framework,
         triggered_by=run_data.triggered_by,
-        status=TestRunStatus.PENDING,
+        total_tests=run_data.total_tests or 0,
+        selected_tests=run_data.selected_tests or 0,
+        time_saved_percent=run_data.time_saved_percent,
+        status=TestRunStatus.RUNNING,
         started_at=datetime.utcnow()
     )
     db.add(test_run)

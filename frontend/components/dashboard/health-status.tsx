@@ -1,23 +1,17 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
+import { CheckCircle2, AlertCircle, XCircle, Loader2 } from 'lucide-react'
+import { analytics } from '@/lib/api/endpoints'
+import { useAuthStore } from '@/lib/stores/auth-store'
 
 interface ServiceStatus {
   name: string
   status: 'healthy' | 'degraded' | 'down'
   latency?: string
 }
-
-const services: ServiceStatus[] = [
-  { name: 'API Gateway', status: 'healthy', latency: '12ms' },
-  { name: 'Code Analysis Engine', status: 'healthy', latency: '45ms' },
-  { name: 'Test Intelligence', status: 'healthy', latency: '23ms' },
-  { name: 'Deployment Service', status: 'healthy', latency: '18ms' },
-  { name: 'ML Pipeline', status: 'degraded', latency: '156ms' },
-  { name: 'Metrics Collector', status: 'healthy', latency: '8ms' },
-]
 
 const statusConfig = {
   healthy: {
@@ -38,46 +32,89 @@ const statusConfig = {
 }
 
 export function HealthStatus() {
-  const healthyCount = services.filter((s) => s.status === 'healthy').length
-  const overallStatus = healthyCount === services.length ? 'healthy' : 'degraded'
+  const [services, setServices] = useState<ServiceStatus[]>([])
+  const [overallStatus, setOverallStatus] = useState<'healthy' | 'degraded' | 'down'>('healthy')
+  const [isLoading, setIsLoading] = useState(true)
+  const { accessToken } = useAuthStore()
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!accessToken) {
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const response = await analytics.getHealthStatus()
+        setServices(response.data.services || [])
+        setOverallStatus(response.data.overall_status || 'healthy')
+      } catch (error) {
+        console.error('Failed to fetch health status:', error)
+        setServices([])
+        setOverallStatus('degraded')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [accessToken])
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg">System Health</CardTitle>
-        <div className="flex items-center gap-2">
-          {overallStatus === 'healthy' ? (
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
-          ) : (
-            <AlertCircle className="h-5 w-5 text-yellow-500" />
-          )}
-          <span className="text-sm font-medium capitalize">{overallStatus}</span>
-        </div>
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : (
+          <div className="flex items-center gap-2">
+            {overallStatus === 'healthy' ? (
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+            ) : overallStatus === 'degraded' ? (
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+            ) : (
+              <XCircle className="h-5 w-5 text-red-500" />
+            )}
+            <span className="text-sm font-medium capitalize">{overallStatus}</span>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {services.map((service) => {
-            const config = statusConfig[service.status]
-            const Icon = config.icon
+        {isLoading ? (
+          <div className="flex items-center justify-center h-48">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : services.length === 0 ? (
+          <div className="flex items-center justify-center h-48 text-muted-foreground">
+            No services to display
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {services.map((service) => {
+              const config = statusConfig[service.status] || statusConfig.healthy
+              const Icon = config.icon
 
-            return (
-              <div
-                key={service.name}
-                className="flex items-center justify-between py-2 border-b last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn('p-1.5 rounded-md', config.bg)}>
-                    <Icon className={cn('h-4 w-4', config.color)} />
+              return (
+                <div
+                  key={service.name}
+                  className="flex items-center justify-between py-2 border-b last:border-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn('p-1.5 rounded-md', config.bg)}>
+                      <Icon className={cn('h-4 w-4', config.color)} />
+                    </div>
+                    <span className="text-sm font-medium">{service.name}</span>
                   </div>
-                  <span className="text-sm font-medium">{service.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {service.latency}
+                  </span>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  {service.latency}
-                </span>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

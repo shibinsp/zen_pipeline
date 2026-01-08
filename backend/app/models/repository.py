@@ -28,6 +28,8 @@ class Repository(Base):
     settings = Column(JSON, default=dict)
     health_score = Column(String(10), default="A")
     last_scan_at = Column(DateTime, nullable=True)
+    last_review_data = Column(JSON, nullable=True)  # Stores the latest code review results
+    dependency_graph = Column(JSON, nullable=True)  # Stores analyzed dependency graph
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

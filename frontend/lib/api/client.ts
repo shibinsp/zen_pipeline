@@ -1,17 +1,39 @@
-import axios, { AxiosInstance, AxiosError } from 'axios'
+import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9000/api/v1'
+// Construct API URL dynamically based on current host
+const getApiBaseUrl = (): string => {
+  // Use environment variable if set
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  
+  // In browser, construct URL from current host
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol
+    const hostname = window.location.hostname
+    // Backend runs on port 6500
+    return `${protocol}//${hostname}:6500/api/v1`
+  }
+  
+  // Fallback for server-side rendering
+  return 'http://localhost:6500/api/v1'
+}
 
+// Create axios instance without baseURL initially
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Request interceptor for auth token
+// Request interceptor for auth token and dynamic baseURL
 apiClient.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
+    // Set baseURL dynamically based on current host
+    if (!config.baseURL) {
+      config.baseURL = getApiBaseUrl()
+    }
+    
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -35,7 +57,8 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token')
         if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          const apiUrl = getApiBaseUrl()
+          const response = await axios.post(`${apiUrl}/auth/refresh`, {
             refresh_token: refreshToken,
           })
 

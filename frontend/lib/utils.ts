@@ -81,7 +81,8 @@ export function formatPercent(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`
 }
 
-export function getSeverityColor(severity: string): string {
+export function getSeverityColor(severity: string | null | undefined): string {
+  if (!severity) return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/30'
   switch (severity.toLowerCase()) {
     case 'critical':
       return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30'
@@ -96,7 +97,8 @@ export function getSeverityColor(severity: string): string {
   }
 }
 
-export function getStatusColor(status: string): string {
+export function getStatusColor(status: string | null | undefined): string {
+  if (!status) return 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/30'
   switch (status.toLowerCase()) {
     case 'completed':
     case 'success':
@@ -131,7 +133,8 @@ export function getRiskColor(score: number): string {
   }
 }
 
-export function getHealthScoreColor(score: string): string {
+export function getHealthScoreColor(score: string | null | undefined): string {
+  if (!score) return 'text-gray-600 bg-gray-100'
   switch (score.toUpperCase()) {
     case 'A':
       return 'text-green-600 bg-green-100'
@@ -153,7 +156,8 @@ export function truncate(str: string, length: number): string {
   return str.slice(0, length) + '...'
 }
 
-export function getProviderIcon(provider: string): string {
+export function getProviderIcon(provider: string | null | undefined): string {
+  if (!provider) return 'GitBranch'
   switch (provider.toLowerCase()) {
     case 'github':
       return 'Github'

@@ -37,6 +37,7 @@ class RuleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        use_enum_values = True
 
 
 class ViolationResponse(BaseModel):
@@ -64,6 +65,7 @@ class DependencyNode(BaseModel):
     type: str  # module, package, service
     size: Optional[int] = None
     health_score: Optional[float] = None
+    file_count: Optional[int] = None
 
 
 class DependencyEdge(BaseModel):

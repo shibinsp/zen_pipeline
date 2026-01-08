@@ -10,6 +10,9 @@ class TestRunCreate(BaseModel):
     branch: Optional[str] = None
     test_framework: Optional[str] = None
     triggered_by: Optional[str] = None
+    total_tests: Optional[int] = 0
+    selected_tests: Optional[int] = 0
+    time_saved_percent: Optional[float] = None
 
 
 class TestRunResponse(BaseModel):
