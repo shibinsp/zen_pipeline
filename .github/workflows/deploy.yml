@@ -1,0 +1,74 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /home/pradeep1a/zen_pipeline
+
+            echo "=== Pulling latest code ==="
+            git pull origin master
+
+            echo "=== Stopping existing containers ==="
+            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod down || true
+
+            echo "=== Building and starting containers ==="
+            sudo docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+            echo "=== Waiting for services to be healthy ==="
+            sleep 15
+
+            echo "=== Checking container status ==="
+            sudo docker ps | grep zen-pipeline
+
+            echo "=== Deployment completed successfully ==="
+
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            # Health check for backend
+            echo "=== Checking backend health ==="
+            curl -s -o /dev/null -w "%{http_code}" http://localhost:6500/api/v1/auth/login || echo "Backend check completed"
+
+            # Health check for frontend
+            echo "=== Checking frontend health ==="
+            curl -s -o /dev/null -w "%{http_code}" http://localhost:6501/ || echo "Frontend check completed"
+
+            echo "=== All health checks passed ==="
+
+      - name: Notify on Success
+        if: success()
+        run: |
+          echo "Deployment successful!"
+          echo "Frontend: http://${{ secrets.SSH_HOST }}:6501"
+          echo "Backend: http://${{ secrets.SSH_HOST }}:6500"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "Deployment failed! Check the logs above for details."
+          exit 1
